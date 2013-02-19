@@ -506,7 +506,9 @@ class ProcManager(object):
         def agent_cleanup(x):
             self._cleanup_method(process_instance.id, rsvc)
             if resource_id:
-                self._cleanup_method(process_instance.id, alistener)
+                pass
+                #self._cleanup_method(resource_id, alistener)
+                # disabled, it's probably not architecturally correct to delete this queue
 
         proc = self.proc_sup.spawn(name=process_instance.id,
                                    service=process_instance,
@@ -851,6 +853,10 @@ class ProcManager(object):
                 # if it's already gone, it's already gone!
                 pass
 
+            except Exception, ex:
+                log.exception(ex)
+                pass
+
         # Cleanup for specific process types
         if process_instance._proc_type == "service":
             # Check if this is the last process for this service and do auto delete service resources here
@@ -867,6 +873,10 @@ class ProcManager(object):
                     self.container.resource_registry.delete(process_instance._proc_svc_id, del_associations=True)
                 except NotFound:
                     # if it's already gone, it's already gone!
+                    pass
+
+                except Exception, ex:
+                    log.exception(ex)
                     pass
 
         elif process_instance._proc_type == "agent":

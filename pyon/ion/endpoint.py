@@ -8,6 +8,7 @@ __license__ = 'Apache 2.0'
 from pyon.net.endpoint import Publisher, Subscriber, EndpointUnit, process_interceptors, RPCRequestEndpointUnit, BaseEndpoint, RPCClient, RPCResponseEndpointUnit, RPCServer, PublisherEndpointUnit, SubscriberEndpointUnit
 from pyon.event.event import BaseEventSubscriberMixin
 from pyon.util.log import log
+from pyon.core.object import IonObjectBase
 from pyon.core.exception import Timeout as IonTimeout
 from gevent.timeout import Timeout
 
@@ -80,6 +81,25 @@ class ProcessEndpointUnitMixin(EndpointUnit):
 
         context = self.get_context()
         log.debug('ProcessEndpointUnitMixin._build_header has context of: %s', context)
+
+        #Check for a field with the ResourceId decorator and if found, then set resource-id
+        # in the header with that field's value or if the decorator specifies a field within an object,
+        #then use the object's field value ( ie. _id)
+        try:
+            if isinstance(raw_msg, IonObjectBase):
+                decorator = 'ResourceId'
+                field = raw_msg.find_field_for_decorator(decorator)
+                if field is not None and hasattr(raw_msg,field):
+                    deco_value = raw_msg.get_decorator_value(field, decorator)
+                    if deco_value:
+                        #Assume that if there is a value, then it is specifying a field in the object
+                        fld_value = getattr(raw_msg,field)
+                        header['resource-id'] = getattr(fld_value, deco_value)
+                    else:
+                        header['resource-id'] = getattr(raw_msg,field)
+
+        except Exception, ex:
+            log.exception(ex)
 
         # use context to set security attributes forward
         if isinstance(context, dict):
@@ -411,7 +431,9 @@ class ProcessSubscriber(Subscriber):
 #
 class ProcessEventSubscriber(ProcessSubscriber, BaseEventSubscriberMixin):
     def __init__(self, xp_name=None, event_type=None, origin=None, queue_name=None, callback=None,
-                 sub_type=None, origin_type=None, process=None, routing_call=None, *args, **kwargs):
+                 sub_type=None, origin_type=None, process=None, routing_call=None, auto_delete=None, *args, **kwargs):
+
+        self._auto_delete = auto_delete
 
         BaseEventSubscriberMixin.__init__(self, xp_name=xp_name, event_type=event_type, origin=origin,
                                           queue_name=queue_name, sub_type=sub_type, origin_type=origin_type)
@@ -422,4 +444,14 @@ class ProcessEventSubscriber(ProcessSubscriber, BaseEventSubscriberMixin):
 
     def __str__(self):
         return "ProcessEventSubscriber at %s:\n\trecv_name: %s\n\tprocess: %s\n\tcb: %s" % (hex(id(self)), str(self._recv_name), str(self._process), str(self._callback))
+
+    def _create_channel(self, **kwargs):
+        """
+        Override to set the channel's queue_auto_delete property.
+        """
+        ch = ProcessSubscriber._create_channel(self, **kwargs)
+        if self._auto_delete is not None:
+            ch.queue_auto_delete = self._auto_delete
+
+        return ch
 

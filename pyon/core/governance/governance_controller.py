@@ -5,11 +5,11 @@ __author__ = 'Stephen P. Henrie'
 __license__ = 'Apache 2.0'
 
 import types
-from pyon.core.bootstrap import CFG, get_service_registry
+from pyon.core.bootstrap import CFG, get_service_registry, IonObject
 from pyon.core.governance.governance_dispatcher import GovernanceDispatcher
 from pyon.util.log import log
 from pyon.core.exception import BadRequest, Inconsistent
-from pyon.ion.resource import RT, PRED, LCS
+from pyon.ion.resource import RT, PRED, LCS, OT
 from pyon.core.governance.policy.policy_decision import PolicyDecisionPointManager
 from pyon.event.event import EventSubscriber
 from interface.services.coi.ipolicy_management_service import PolicyManagementServiceProcessClient
@@ -268,26 +268,54 @@ class GovernanceController(object):
             return self.get_actor_header(None)
 
     #Returns the list of commitments for the specified user and resource
-    def get_resource_commitment(self, user_id, resource_id):
+    def get_resource_commitments(self, actor_id, resource_id):
 
-        log.debug("Finding commitments for user_id: %s and resource_id: %s" % (user_id, resource_id))
+        log.debug("Finding commitments for actor_id: %s and resource_id: %s" % (actor_id, resource_id))
 
         try:
-            cur_time = int(get_ion_ts())
-            commitments,_ = self._rr.find_objects(resource_id, PRED.hasCommitment, RT.Commitment)
-            for com in commitments:  #TODO - update when Retired is removed from find_objects
-                if com.consumer == user_id and com.lcstate != LCS.RETIRED and com.expiration < cur_time:
-                    return com
 
-            return None
+            commitments,_ = self._rr.find_objects(resource_id, PRED.hasCommitment, RT.Commitment)
+            if not commitments:
+                return None
+
+            cur_time = int(get_ion_ts())
+            commitment_list = []
+            for com in commitments:  #TODO - update when Retired is removed from find_objects
+                if com.consumer == actor_id and com.lcstate != LCS.RETIRED and ( com.expiration == 0 or \
+                ( com.expiration > 0 and cur_time < com.expiration)):
+                    commitment_list.append(com)
+
+            if commitment_list:
+                return commitment_list
 
         except Exception, e:
             log.error(e)
-            return None
+
+        return None
+
+    #Returns a ResourceCommitmentStatus object indicating the commitment status between this resource/actor
+    #Can only have an exclusive commitment if actor already has a shared commitment.
+    def has_resource_commitments(self, actor_id, resource_id):
+
+        ret_status = IonObject(OT.ResourceCommitmentStatus)
+        commitments = self.get_resource_commitments(actor_id, resource_id)
+        if commitments is None:
+            #No commitments were found between this resource_id and actor_id
+            return ret_status
+
+        ret_status.shared = True
+
+        for com in commitments:
+            if com.commitment.exclusive == True:
+                #Found an exclusive commitment
+                ret_status.exclusive = True
+                return ret_status
+
+        #Only a shared commitment was found
+        return ret_status
 
 
     #Manage all of the policies in the container
-
     def resource_policy_event_callback(self, *args, **kwargs):
         resource_policy_event = args[0]
         log.debug('Resouce related policy event received: %s', str(resource_policy_event.__dict__))
