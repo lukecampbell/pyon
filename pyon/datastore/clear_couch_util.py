@@ -76,10 +76,10 @@ def create_config(host, port, username, password):
 
 def clear_couch(config, prefix):
     _clear_couch(
-        config.server.couchdb.host,
-        config.server.couchdb.port,
-        config.server.couchdb.username,
-        config.server.couchdb.password,
+        config.server.couchbase.host,
+        config.server.couchbase.port,
+        config.server.couchbase.username,
+        config.server.couchbase.password,
         prefix=prefix)
 
 def _clear_couch(host, port, username, password, prefix, verbose=False):

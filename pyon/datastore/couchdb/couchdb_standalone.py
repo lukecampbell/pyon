@@ -141,7 +141,7 @@ class CouchDataStore(object):
             self._create_bucket(name=datastore_name, sasl_password=bucket_password, ram_quota_mb=ram_quota_mb)
 
     def _create_bucket(self, name, auth_type='sasl', bucket_type='couchbase', parallel_db_and_view_compaction='false',
-                       ram_quota_mb="128", replica_index='0', replica_number='1', sasl_password=None, flush_enabled=False, proxy_port=11211):
+                       ram_quota_mb="128", replica_index='0', replica_number='0', sasl_password=None, flush_enabled=False, proxy_port=11211):
         '''
         If you set authType to "none", then you must specify a proxyPort number.
         If you set authType to "sasl", then you may optionally provide a "saslPassword" parameter.

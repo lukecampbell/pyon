@@ -128,8 +128,8 @@ class CouchDB_DataStore(DataStore):
     def create_datastore(self, datastore_name="", create_indexes=True, profile=None):
         datastore_name = datastore_name or self.datastore_name
         profile = profile or self.profile
-        bucket_password = CFG.server.couchbase.bucket_password,
-        ram_quota_mb =   CFG.server.couchbase.bucket_ram_quota_samll_mb
+        bucket_password = CFG.get_safe('server.couchbase.bucket_password', '')
+        ram_quota_mb =   CFG.get_safe('server.couchbase.bucket_ram_quota_samll_mb', '100')
         log.info('Creating data store %s with profile=%s' % (datastore_name, profile))
         if not self.datastore_exists(datastore_name):
             self._create_bucket(name=datastore_name, sasl_password=bucket_password, ram_quota_mb=ram_quota_mb)
