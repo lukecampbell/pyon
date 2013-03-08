@@ -79,7 +79,7 @@ setup(  name = 'pyon',
             'ndg-xacml==0.5.1',
             'python-gevent-profiler',
             'lxml==2.3.4', # Fails to compile on Linux ??!??
-            'requests==0.13.5',
+            'requests==1.1.0',
 
             # DM related dependencies for 'tables'
             # 'numpy==1.6.1',
