@@ -346,6 +346,7 @@ class Container(BaseContainerAgent):
             except Exception as ex:
                 log.exception("Container stop(): Error stop %s" % capability)
 
+        gevent.sleep(3)
         Container.instance = None
         from pyon.core import bootstrap
         bootstrap.container_instance = None
