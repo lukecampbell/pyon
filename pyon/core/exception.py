@@ -92,6 +92,11 @@ class CorruptionError(StreamException):
     """
     status_code = 413
 
+class BadFormatError(IonException):
+    """
+    """
+    status_code = 414
+
 class ServerError(IonException):
     '''
     For reporting generic service failure
